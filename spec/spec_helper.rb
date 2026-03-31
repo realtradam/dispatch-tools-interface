@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 require "dispatch/tools/interface"
+require "dispatch/tools/errors"
+require "dispatch/tools/result"
+require "dispatch/tools/definition"
+require "dispatch/tools/registry"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

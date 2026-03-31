@@ -1,39 +1,164 @@
 # Dispatch::Tools::Interface
 
-TODO: Delete this and the text below, and describe your gem
+A Ruby gem that provides a structured interface for defining, validating, and executing tool definitions. Tools are defined with JSON Schema parameter validation (via [json_schemer](https://github.com/davishmcclurg/json_schemer)) and organized in a registry for lookup and execution.
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/dispatch/tools/interface`. To experiment with that code, run `bin/console` for an interactive prompt.
+Designed as a building block for systems that expose callable tools — such as AI agent frameworks, plugin architectures, or RPC-style APIs.
 
-## Installation
+### Core Components
 
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
+| Class | Purpose |
+|---|---|
+| `Dispatch::Tools::Definition` | Defines a single tool: name, description, JSON Schema parameters, and an execution block |
+| `Dispatch::Tools::Registry` | Stores and retrieves tool definitions by name |
+| `Dispatch::Tools::Result` | Immutable value object representing success or failure of a tool call |
 
-Install the gem and add to the application's Gemfile by executing:
+---
 
-```bash
-bundle add UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+### Installation
+
+Add to your Gemfile:
+
+```ruby
+gem "dispatch-tools-interface"
 ```
 
-If bundler is not being used to manage dependencies, install the gem by executing:
+Then run:
 
 ```bash
-gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+bundle install
 ```
 
-## Usage
+Or install directly:
 
-TODO: Write usage instructions here
+```bash
+gem install dispatch-tools-interface
+```
 
-## Development
+---
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+### Usage
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+#### Defining a Tool
 
-## Contributing
+Create a `Definition` with a name, description, a JSON Schema hash for parameters, and a block that receives validated params and an optional context hash:
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/dispatch-tools-interface.
+```ruby
+read_file = Dispatch::Tools::Definition.new(
+  name: "read_file",
+  description: "Read the contents of a file",
+  parameters: {
+    type: "object",
+    properties: {
+      path: { type: "string", description: "File path" },
+      start_line: { type: "integer", description: "Start line (0-based)" },
+      end_line: { type: "integer", description: "End line (0-based, -1 for EOF)" }
+    },
+    required: ["path"]
+  }
+) do |params, context|
+  content = File.read(params[:path])
+  Dispatch::Tools::Result.success(output: content)
+end
+```
 
-## License
+#### Calling a Tool
+
+Pass a params hash (string or symbol keys) and an optional `context` keyword argument. Parameters are validated against the JSON Schema before the block executes. If validation fails, a `Result.failure` is returned — the block is never called. Exceptions raised inside the block are caught and wrapped in a failure result.
+
+```ruby
+result = read_file.call({ path: "src/main.rb" })
+
+result.success?  # => true
+result.output    # => "contents of src/main.rb"
+result.to_s      # => "contents of src/main.rb"
+
+# With context
+result = read_file.call({ path: "src/main.rb" }, context: { worktree_path: "/tmp/work" })
+
+# Validation failure
+result = read_file.call({})  # missing required "path"
+result.failure?  # => true
+result.error     # => "Parameter validation failed: ..."
+```
+
+#### Working with Results
+
+`Result` is an immutable (frozen) value object with two factory methods:
+
+```ruby
+success = Dispatch::Tools::Result.success(output: "done", metadata: { elapsed: 0.3 })
+success.success?   # => true
+success.output     # => "done"
+success.metadata   # => { elapsed: 0.3 }
+success.to_h       # => { success: true, output: "done", error: nil, metadata: { elapsed: 0.3 } }
+
+failure = Dispatch::Tools::Result.failure(error: "File not found")
+failure.failure?   # => true
+failure.error      # => "File not found"
+failure.to_s       # => "File not found"
+```
+
+#### Using the Registry
+
+The `Registry` stores tool definitions by name and supports lookup, listing, and subsetting:
+
+```ruby
+registry = Dispatch::Tools::Registry.new
+
+registry.register(read_file)
+registry.register(write_file)
+registry.register(delete_file)
+
+# Lookup
+tool = registry.get("read_file")
+result = tool.call({ path: "README.md" })
+
+# Query
+registry.has?("read_file")  # => true
+registry.tool_names         # => ["read_file", "write_file", "delete_file"]
+registry.size               # => 3
+registry.empty?             # => false
+
+# Export all definitions as an array of hashes
+registry.to_a
+# => [{ name: "read_file", description: "...", parameters: { ... } }, ...]
+
+# Create a subset registry with only specific tools
+subset = registry.subset("read_file", "write_file")
+subset.tool_names  # => ["read_file", "write_file"]
+```
+
+Registration is chainable:
+
+```ruby
+registry.register(tool_a).register(tool_b).register(tool_c)
+```
+
+#### Error Handling
+
+All custom errors inherit from `Dispatch::Tools::Error`:
+
+| Error | Raised when |
+|---|---|
+| `DuplicateToolError` | Registering a tool with a name that already exists |
+| `ToolNotFoundError` | Calling `Registry#get` or `Registry#subset` with an unknown name |
+| `ValidationError` | Available for custom validation logic |
+| `ExecutionError` | Available for custom execution error handling |
+
+---
+
+### Development
+
+After checking out the repo, run `bin/setup` to install dependencies. Then run the test suite:
+
+```bash
+bundle exec rake spec
+```
+
+Use `bin/console` for an interactive prompt to experiment with the library.
+
+---
+
+### License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
