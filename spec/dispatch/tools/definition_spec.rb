@@ -9,7 +9,7 @@ RSpec.describe Dispatch::Tools::Definition do
         start_line: { type: "integer", description: "Start line (0-based)" },
         end_line: { type: "integer", description: "End line (0-based, -1 for EOF)" }
       },
-      required: ["path"]
+      required: [ "path" ]
     }
   end
 
@@ -171,10 +171,10 @@ RSpec.describe Dispatch::Tools::Definition do
       hash = tool.to_h
 
       expect(hash).to eq({
-        name: "read_file",
-        description: "Read the contents of a file",
-        parameters: parameters_schema
-      })
+                           name: "read_file",
+                           description: "Read the contents of a file",
+                           parameters: parameters_schema
+                         })
     end
 
     it "returns a plain hash, not a struct" do

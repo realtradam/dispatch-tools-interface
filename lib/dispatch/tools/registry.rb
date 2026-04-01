@@ -10,15 +10,17 @@ module Dispatch
       def register(tool_definition)
         name = tool_definition.name
 
-        if @tools.key?(name)
-          raise DuplicateToolError, "Tool '#{name}' is already registered"
-        end
+        raise DuplicateToolError, "Tool '#{name}' is already registered" if @tools.key?(name)
 
         @tools[name] = tool_definition
         self
       end
 
       def get(name)
+        @tools[name]
+      end
+
+      def fetch(name)
         @tools.fetch(name) do
           raise ToolNotFoundError, "Tool '#{name}' not found"
         end
@@ -44,7 +46,7 @@ module Dispatch
         new_registry = self.class.new
 
         names.each do |name|
-          new_registry.register(get(name))
+          new_registry.register(fetch(name))
         end
 
         new_registry

@@ -72,22 +72,22 @@ RSpec.describe Dispatch::Tools::Result do
       result = described_class.success(output: "data", metadata: { flag: true })
 
       expect(result.to_h).to eq({
-        success: true,
-        output: "data",
-        error: nil,
-        metadata: { flag: true }
-      })
+                                  success: true,
+                                  output: "data",
+                                  error: nil,
+                                  metadata: { flag: true }
+                                })
     end
 
     it "returns a hash with all fields for a failure result" do
       result = described_class.failure(error: "oops")
 
       expect(result.to_h).to eq({
-        success: false,
-        output: nil,
-        error: "oops",
-        metadata: {}
-      })
+                                  success: false,
+                                  output: nil,
+                                  error: "oops",
+                                  metadata: {}
+                                })
     end
   end
 

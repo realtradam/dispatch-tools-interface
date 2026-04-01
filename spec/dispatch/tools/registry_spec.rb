@@ -10,7 +10,7 @@ RSpec.describe Dispatch::Tools::Registry do
         properties: {
           path: { type: "string" }
         },
-        required: ["path"]
+        required: [ "path" ]
       }
     ) { |params, _context| Dispatch::Tools::Result.success(output: "contents of #{params[:path]}") }
   end
@@ -39,7 +39,7 @@ RSpec.describe Dispatch::Tools::Registry do
         properties: {
           path: { type: "string" }
         },
-        required: ["path"]
+        required: [ "path" ]
       }
     ) { |_params, _context| Dispatch::Tools::Result.success(output: "deleted") }
   end
@@ -88,8 +88,8 @@ RSpec.describe Dispatch::Tools::Registry do
       expect(tool).to be(read_file_tool)
     end
 
-    it "raises ToolNotFoundError for unknown tool name" do
-      expect { registry.get("nonexistent") }.to raise_error(Dispatch::Tools::ToolNotFoundError)
+    it "returns nil for unknown tool name" do
+      expect(registry.get("nonexistent")).to be_nil
     end
   end
 
@@ -142,16 +142,16 @@ RSpec.describe Dispatch::Tools::Registry do
       expect(result).to be_an(Array)
       expect(result.size).to eq(1)
       expect(result.first).to eq({
-        name: "read_file",
-        description: "Read the contents of a file",
-        parameters: {
-          type: "object",
-          properties: {
-            path: { type: "string" }
-          },
-          required: ["path"]
-        }
-      })
+                                   name: "read_file",
+                                   description: "Read the contents of a file",
+                                   parameters: {
+                                     type: "object",
+                                     properties: {
+                                       path: { type: "string" }
+                                     },
+                                     required: [ "path" ]
+                                   }
+                                 })
     end
 
     it "returns plain hashes, not structs" do

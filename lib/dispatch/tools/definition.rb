@@ -19,9 +19,7 @@ module Dispatch
         symbolized = symbolize_keys(params)
         valid, errors = validate_params(params)
 
-        unless valid
-          return Result.failure(error: "Parameter validation failed: #{errors.join('; ')}")
-        end
+        return Result.failure(error: "Parameter validation failed: #{errors.join("; ")}") unless valid
 
         begin
           @block.call(symbolized, context)
@@ -43,9 +41,9 @@ module Dispatch
         errors = @schemer.validate(stringified).map { |err| err["error"] || err.fetch("type", "unknown error") }
 
         if errors.empty?
-          [true, []]
+          [ true, [] ]
         else
-          [false, errors]
+          [ false, errors ]
         end
       end
 
